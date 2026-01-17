@@ -153,7 +153,7 @@ async function quickSortLR(arr: number[], cb: SortCallbacks) {
         j--;
       }
       
-      if (i < j) {
+      if (i <= j) {
         await cb.swap(i, j);
         i++;
         j--;
