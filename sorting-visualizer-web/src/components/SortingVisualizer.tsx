@@ -66,20 +66,17 @@ async function insertionSort(arr: number[], cb: SortCallbacks) {
   const n = arr.length;
   for (let i = 1; i < n; i++) {
     if (cb.checkStop()) return;
-    const key = arr[i];
-    let j = i - 1;
+    let j = i;
     
     cb.mark([i], 2);
     
-    while (j >= 0) {
+    while (j > 0) {
       if (cb.checkStop()) return;
-      await cb.compare(j, j + 1);
-      if (arr[j] <= key) break;
-      arr[j + 1] = arr[j];
+      await cb.compare(j - 1, j);
+      if (arr[j - 1] <= arr[j]) break;
+      await cb.swap(j - 1, j);
       j--;
-      await cb.delay();
     }
-    arr[j + 1] = key;
     cb.unmark();
   }
 }
@@ -186,24 +183,30 @@ async function mergeSort(arr: number[], cb: SortCallbacks) {
     const right = arr.slice(m + 1, r + 1);
     let i = 0, j = 0, k = l;
     
+    const mergedIndices: number[] = [];
+    const mergedValues: number[] = [];
+    
     while (i < left.length && j < right.length) {
       if (cb.checkStop()) return;
       cb.mark([k], 3);
-      await cb.delay();
       
       if (left[i] <= right[j]) {
-        arr[k] = left[i];
+        mergedIndices.push(k);
+        mergedValues.push(left[i]);
         i++;
       } else {
-        arr[k] = right[j];
+        mergedIndices.push(k);
+        mergedValues.push(right[j]);
         j++;
       }
       k++;
+      await cb.delay();
     }
     
     while (i < left.length) {
       if (cb.checkStop()) return;
-      arr[k] = left[i];
+      mergedIndices.push(k);
+      mergedValues.push(left[i]);
       i++;
       k++;
       await cb.delay();
@@ -211,11 +214,18 @@ async function mergeSort(arr: number[], cb: SortCallbacks) {
     
     while (j < right.length) {
       if (cb.checkStop()) return;
-      arr[k] = right[j];
+      mergedIndices.push(k);
+      mergedValues.push(right[j]);
       j++;
       k++;
       await cb.delay();
     }
+    
+    // Apply all changes at once
+    for (let idx = 0; idx < mergedIndices.length; idx++) {
+      arr[mergedIndices[idx]] = mergedValues[idx];
+    }
+    
     cb.unmark();
   }
   
@@ -279,17 +289,14 @@ async function shellSort(arr: number[], cb: SortCallbacks) {
     
     for (let i = gap; i < n; i++) {
       if (cb.checkStop()) return;
-      const temp = arr[i];
       let j = i;
       
       while (j >= gap) {
         await cb.compare(j - gap, j);
-        if (arr[j - gap] <= temp) break;
-        arr[j] = arr[j - gap];
+        if (arr[j - gap] <= arr[j]) break;
+        await cb.swap(j - gap, j);
         j -= gap;
-        await cb.delay();
       }
-      arr[j] = temp;
     }
     gap = Math.floor(gap / 2);
   }
