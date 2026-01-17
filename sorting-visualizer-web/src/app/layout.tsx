@@ -5,8 +5,8 @@ import './globals.css'
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'The Sound of Sorting',
-  description: 'Visualize and hear sorting algorithms in action',
+  title: 'Sorting Algorithm Visualizer',
+  description: 'Interactive visualization of popular sorting algorithms with real-time speed control',
 }
 
 export default function RootLayout({
