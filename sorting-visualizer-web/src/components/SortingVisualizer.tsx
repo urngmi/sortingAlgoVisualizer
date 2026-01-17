@@ -468,7 +468,7 @@ export default function SortingVisualizer() {
         </span>
         <div className="flex-1"></div>
         <a 
-          href="https://github.com/omkarb/sortingAlgoVisualizer" 
+          href="https://github.com/urngmi/sortingAlgoVisualizer" 
           target="_blank" 
           rel="noopener noreferrer"
           className="uppercase text-white hover:underline"
