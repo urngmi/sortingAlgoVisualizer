@@ -20,6 +20,7 @@ type Algorithm = {
 type SortCallbacks = {
   compare: (i: number, j: number) => Promise<void>;
   swap: (i: number, j: number) => Promise<void>;
+  set: (i: number, value: number) => void;
   mark: (indices: number[], color: number) => void;
   unmark: () => void;
   delay: () => Promise<void>;
@@ -134,7 +135,7 @@ async function cocktailSort(arr: number[], cb: SortCallbacks) {
 // Quick Sort (LR pointers)
 async function quickSortLR(arr: number[], cb: SortCallbacks) {
   async function partition(lo: number, hi: number): Promise<number> {
-    const pivot = arr[hi];
+    const pivotValue = arr[hi];
     cb.mark([hi], 2);
     let i = lo;
     let j = hi - 1;
@@ -142,12 +143,12 @@ async function quickSortLR(arr: number[], cb: SortCallbacks) {
     while (i <= j) {
       if (cb.checkStop()) return lo;
       
-      while (i <= j && arr[i] < pivot) {
+      while (i <= j && arr[i] < pivotValue) {
         await cb.compare(i, hi);
         i++;
       }
       
-      while (i <= j && arr[j] > pivot) {
+      while (i <= j && arr[j] > pivotValue) {
         await cb.compare(j, hi);
         j--;
       }
@@ -183,20 +184,15 @@ async function mergeSort(arr: number[], cb: SortCallbacks) {
     const right = arr.slice(m + 1, r + 1);
     let i = 0, j = 0, k = l;
     
-    const mergedIndices: number[] = [];
-    const mergedValues: number[] = [];
-    
     while (i < left.length && j < right.length) {
       if (cb.checkStop()) return;
       cb.mark([k], 3);
       
       if (left[i] <= right[j]) {
-        mergedIndices.push(k);
-        mergedValues.push(left[i]);
+        cb.set(k, left[i]);
         i++;
       } else {
-        mergedIndices.push(k);
-        mergedValues.push(right[j]);
+        cb.set(k, right[j]);
         j++;
       }
       k++;
@@ -205,8 +201,8 @@ async function mergeSort(arr: number[], cb: SortCallbacks) {
     
     while (i < left.length) {
       if (cb.checkStop()) return;
-      mergedIndices.push(k);
-      mergedValues.push(left[i]);
+      cb.mark([k], 3);
+      cb.set(k, left[i]);
       i++;
       k++;
       await cb.delay();
@@ -214,16 +210,11 @@ async function mergeSort(arr: number[], cb: SortCallbacks) {
     
     while (j < right.length) {
       if (cb.checkStop()) return;
-      mergedIndices.push(k);
-      mergedValues.push(right[j]);
+      cb.mark([k], 3);
+      cb.set(k, right[j]);
       j++;
       k++;
       await cb.delay();
-    }
-    
-    // Apply all changes at once
-    for (let idx = 0; idx < mergedIndices.length; idx++) {
-      arr[mergedIndices[idx]] = mergedValues[idx];
     }
     
     cb.unmark();
@@ -310,7 +301,7 @@ export default function SortingVisualizer() {
   const [selectedAlgo, setSelectedAlgo] = useState(0);
   const [comparisons, setComparisons] = useState(0);
   const [arrayAccesses, setArrayAccesses] = useState(0);
-  const [inputType, setInputType] = useState('Random');
+  const [inputType, setInputType] = useState('RANDOM');
   const [colorMap, setColorMap] = useState<Map<number, number>>(new Map());
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -327,17 +318,24 @@ export default function SortingVisualizer() {
   };
 
   const generateArray = useCallback(() => {
-    const arr = Array.from({ length: arraySize }, () => Math.floor(Math.random() * 1000));
+    let arr: number[];
+    if (inputType === 'SORTED') {
+      arr = Array.from({ length: arraySize }, (_, i) => i + 1);
+    } else if (inputType === 'REVERSE') {
+      arr = Array.from({ length: arraySize }, (_, i) => arraySize - i);
+    } else {
+      arr = Array.from({ length: arraySize }, () => Math.floor(Math.random() * 1000));
+    }
     setArray(arr);
     arrayRef.current = arr;
     setComparisons(0);
     setArrayAccesses(0);
     setColorMap(new Map());
-  }, [arraySize]);
+  }, [arraySize, inputType]);
 
   useEffect(() => {
     generateArray();
-  }, [arraySize]);
+  }, [generateArray]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -413,6 +411,13 @@ export default function SortingVisualizer() {
         arrayRef.current = arr;
         setColorMap(new Map([[i, 1], [j, 1]]));
         await new Promise(r => setTimeout(r, getDelay()));
+      },
+      set: (i: number, value: number) => {
+        arr[i] = value;
+        accessCount += 1;
+        setArrayAccesses(accessCount);
+        setArray([...arr]);
+        arrayRef.current = arr;
       },
       mark: (indices: number[], color: number) => {
         const map = new Map();
